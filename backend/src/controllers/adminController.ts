@@ -180,7 +180,8 @@ export const adminController = {
   },
   refundOrder: async (req: AuthenticatedRequest, res: Response) => {
     const { reason, fullRefund } = req.body;
-    const result = await processRefund(req.params.id, reason || 'Admin initiated refund', req.user._id.toString(), fullRefund !== false);
+    const orderId = req.params.id as string;
+    const result = await processRefund(orderId, reason || 'Admin initiated refund', req.user._id.toString(), fullRefund !== false);
     res.json({ success: true, data: { message: 'Refund processed', ...result }, meta: { timestamp: new Date().toISOString() } });
   },
   getDisputes: async (req: AuthenticatedRequest, res: Response) => {
@@ -203,7 +204,8 @@ export const adminController = {
     if (!['refund_student', 'pay_courier', 'split'].includes(resolution)) {
       throw new AppError('VALIDATION_ERROR', 'Resolution must be refund_student, pay_courier, or split');
     }
-    const result = await resolveDispute(req.params.id, resolution, adminNote || '', req.user._id.toString());
+    const orderId = req.params.id as string;
+    const result = await resolveDispute(orderId, resolution, adminNote || '', req.user._id.toString());
     res.json({ success: true, data: result, meta: { timestamp: new Date().toISOString() } });
   },
   createCoupon: async (req: AuthenticatedRequest, res: Response) => {

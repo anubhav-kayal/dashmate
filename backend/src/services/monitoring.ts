@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
@@ -40,5 +41,12 @@ export function captureError(error: Error, context?: Record<string, unknown>): v
   });
 }
 
-export const sentryMiddleware = Sentry.Handlers.requestHandler();
-export const sentryErrorHandler = Sentry.Handlers.errorHandler();
+export function sentryRequestHandler(req: Request, _res: Response, next: NextFunction): void {
+  Sentry.setUser({
+    id: (req as any).user?._id?.toString(),
+    ip: req.ip,
+  });
+  Sentry.setExtra('path', req.path);
+  Sentry.setExtra('method', req.method);
+  next();
+}

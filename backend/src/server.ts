@@ -8,7 +8,7 @@ import { initSocket } from './socket';
 import { initCronJobs } from './jobs';
 import { initRedis } from './middleware/rateLimiter';
 import { initVapidKeys } from './services/pushNotifications';
-import { initSentry, sentryMiddleware, sentryErrorHandler } from './services/monitoring';
+import { initSentry, sentryRequestHandler } from './services/monitoring';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { protect, authorize } from './middleware/auth';
 import { securityHeaders, preventNoSQLInjection, requestId } from './middleware/security';
@@ -25,7 +25,7 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(requestId);
-app.use(sentryMiddleware);
+app.use(sentryRequestHandler);
 app.use(securityHeaders);
 app.use(preventNoSQLInjection);
 app.use(cors({
@@ -46,7 +46,6 @@ app.use('/api/v1/restaurant', protect, restaurantRoutes);
 app.use('/api/v1/admin', protect, authorize('admin'), adminRoutes);
 
 app.use(notFoundHandler);
-app.use(sentryErrorHandler);
 app.use(errorHandler);
 
 async function startServer(): Promise<void> {
