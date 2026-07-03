@@ -71,6 +71,9 @@ export const config = {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  sentry: {
+    dsn: process.env.SENTRY_DSN || '',
+  },
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID,
     authToken: process.env.TWILIO_AUTH_TOKEN,
