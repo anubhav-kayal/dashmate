@@ -1,0 +1,38 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: dashmate
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/dashmate
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - redis
+
+volumes:
+  mongo_data:
+  redis_data:
