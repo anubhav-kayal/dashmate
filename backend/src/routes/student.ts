@@ -15,6 +15,7 @@ router.post('/orders', studentController.placeOrder);
 router.get('/orders', studentController.getOrders);
 router.get('/orders/:id', studentController.getOrder);
 router.post('/orders/:id/cancel', studentController.cancelOrder);
+router.post('/orders/:id/dispute', studentController.disputeOrder);
 router.post('/orders/:id/rate', studentController.rateOrder);
 
 router.get('/wallet', studentController.getWallet);

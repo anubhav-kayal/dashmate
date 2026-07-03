@@ -5,6 +5,7 @@ import { Transaction } from '../models/transactionModel';
 import { Coupon } from '../models/couponModel';
 import { WithdrawalRequest } from '../models/withdrawalModel';
 import { NotFoundError, AppError } from '../utils/errors';
+import { processRefund, resolveDispute } from '../services/refundService';
 
 interface AuthenticatedRequest extends Request {
   user?: any;
@@ -178,15 +179,32 @@ export const adminController = {
     res.json({ success: true, data: order, meta: { timestamp: new Date().toISOString() } });
   },
   refundOrder: async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: { message: 'Order refunded' }, meta: { timestamp: new Date().toISOString() } });
+    const { reason, fullRefund } = req.body;
+    const result = await processRefund(req.params.id, reason || 'Admin initiated refund', req.user._id.toString(), fullRefund !== false);
+    res.json({ success: true, data: { message: 'Refund processed', ...result }, meta: { timestamp: new Date().toISOString() } });
   },
   getDisputes: async (req: AuthenticatedRequest, res: Response) => {
-    const filter = { status: 'disputed' as const };
-    const items = await Order.find(filter).populate('student', 'name').populate('restaurant', 'name').populate('courier', 'name').lean();
-    res.json({ success: true, data: { items }, meta: { timestamp: new Date().toISOString() } });
+    const { page = '1', limit = '20' } = req.query;
+    const pageNum = Math.max(1, parseInt(page as string));
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string)));
+    const total = await Order.countDocuments({ status: 'disputed' });
+    const items = await Order.find({ status: 'disputed' })
+      .populate('student', 'name phone')
+      .populate('restaurant', 'name')
+      .populate('courier', 'name')
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .lean();
+    res.json({ success: true, data: { items, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } }, meta: { timestamp: new Date().toISOString() } });
   },
   resolveDispute: async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: { message: 'Dispute resolved' }, meta: { timestamp: new Date().toISOString() } });
+    const { resolution, adminNote } = req.body;
+    if (!['refund_student', 'pay_courier', 'split'].includes(resolution)) {
+      throw new AppError('VALIDATION_ERROR', 'Resolution must be refund_student, pay_courier, or split');
+    }
+    const result = await resolveDispute(req.params.id, resolution, adminNote || '', req.user._id.toString());
+    res.json({ success: true, data: result, meta: { timestamp: new Date().toISOString() } });
   },
   createCoupon: async (req: AuthenticatedRequest, res: Response) => {
     const coupon = await Coupon.create(req.body);

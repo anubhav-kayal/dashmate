@@ -8,7 +8,7 @@ import { Coupon } from '../models/couponModel';
 import { Notification } from '../models/notificationModel';
 import { config } from '../config';
 import { NotFoundError, AppError } from '../utils/errors';
-import { getCancellationPolicy, canCancel } from '../utils/cancellationPolicy';
+import { getCancellationPolicy, canCancel, isValidTransition } from '../utils/cancellationPolicy';
 
 interface AuthenticatedRequest extends Request {
   user?: any;
@@ -312,6 +312,43 @@ export const studentController = {
 
     res.json({
       success: true, data: { message: 'Order rated successfully' },
+      meta: { timestamp: new Date().toISOString() },
+    });
+  },
+
+  disputeOrder: async (req: AuthenticatedRequest, res: Response) => {
+    const { reason } = req.body;
+    const order = await Order.findOne({ _id: req.params.id, student: req.user._id });
+    if (!order) throw new NotFoundError('Order');
+    if (!isValidTransition(order.status, 'disputed')) {
+      throw new AppError('INVALID_STATUS_TRANSITION', `Cannot dispute order in ${order.status} status`);
+    }
+
+    order.status = 'disputed';
+    order.cancellationReason = reason || 'Disputed by student';
+    order.timestamps.cancelledAt = new Date();
+    await order.save();
+
+    await Notification.create({
+      user: req.user._id,
+      type: 'dispute_opened',
+      title: 'Dispute Opened',
+      message: `Dispute opened for order ${order.orderNumber}. Admin will review it shortly.`,
+      data: { orderId: order._id },
+      priority: 'high',
+    });
+
+    const io = (global as any).io;
+    if (io) {
+      io.emitToAdmins('dispute:new', {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        reason,
+      });
+    }
+
+    res.json({
+      success: true, data: { message: 'Dispute opened', orderNumber: order.orderNumber },
       meta: { timestamp: new Date().toISOString() },
     });
   },
