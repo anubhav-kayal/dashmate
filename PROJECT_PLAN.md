@@ -298,18 +298,18 @@ MAX_CART_ITEMS = 50 items
 - Run Socket.io stress test with 50+ concurrent courier location updates
 
 ### Security Checklist
-- [ ] All API routes protected with `protect` + `authorize` middleware
-- [ ] Rate limiting enabled on all mutating endpoints (already done)
-- [ ] Input validation with Zod on all DTOs (already done)
-- [ ] JWT expiry set to 1d, secret ≥ 32 chars (already done)
-- [ ] CORS restricted to frontend origin only (already done)
-- [ ] Helmet.js middleware for security headers
-- [ ] MongoDB injection prevention (Mongoose sanitization)
-- [ ] No sensitive data in API responses (passwords, OTPs)
-- [ ] Razorpay signature verification on all webhooks (already done)
-- [ ] Cloudinary URL signing for image uploads (already done)
-- [ ] Push notification subscription endpoints rate-limited
-- [ ] XSS prevention (React escaping, CSP headers)
+- [x] All API routes protected with `protect` + `authorize` middleware
+- [x] Rate limiting enabled on all mutating endpoints
+- [x] Input validation with Zod on all DTOs
+- [x] JWT expiry set to 1d, secret ≥ 32 chars
+- [x] CORS restricted to frontend origin only
+- [x] Helmet.js middleware for security headers (CSP, XSS, clickjacking)
+- [x] MongoDB injection prevention (express-mongo-sanitize)
+- [x] No sensitive data in API responses (passwords, OTPs)
+- [x] Razorpay signature verification on all webhooks
+- [x] Cloudinary URL signing for image uploads
+- [x] Push notification subscription endpoints rate-limited
+- [x] XSS prevention (React escaping, CSP headers via Helmet)
 
 ## 📝 Notes for Future Sessions
 
