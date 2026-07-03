@@ -10,6 +10,8 @@ import { initRedis } from './middleware/rateLimiter';
 import { initVapidKeys } from './services/pushNotifications';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { protect, authorize } from './middleware/auth';
+import { securityHeaders, preventNoSQLInjection, requestId } from './middleware/security';
+import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import studentRoutes from './routes/student';
 import courierRoutes from './routes/courier';
@@ -19,6 +21,9 @@ import adminRoutes from './routes/admin';
 const app = express();
 const httpServer = createServer(app);
 
+app.use(requestId);
+app.use(securityHeaders);
+app.use(preventNoSQLInjection);
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true,
@@ -42,11 +47,11 @@ app.use(errorHandler);
 async function startServer(): Promise<void> {
   try {
     await mongoose.connect(config.mongodbUri);
-    console.log('Connected to MongoDB');
+    logger.info('Connected to MongoDB');
 
     if (config.redis.url) {
       await initRedis(config.redis.url);
-      console.log('Connected to Redis');
+      logger.info('Connected to Redis');
     }
 
     const vapidKeys = initVapidKeys();
@@ -54,17 +59,18 @@ async function startServer(): Promise<void> {
 
     const io = initSocket(httpServer);
     (global as any).io = io;
-    console.log('Socket.io initialized');
+    logger.info('Socket.io initialized');
 
     initCronJobs();
 
     httpServer.listen(config.port, () => {
-      console.log(`🚀 Server running on http://localhost:${config.port}`);
-      console.log(`   Environment: ${config.nodeEnv}`);
-      console.log(`   Frontend URL: ${config.frontendUrl}`);
+      logger.info(`Server running on http://localhost:${config.port}`, {
+        environment: config.nodeEnv,
+        frontendUrl: config.frontendUrl,
+      });
     });
   } catch (err) {
-    console.error('Failed to start server:', err);
+    logger.error('Failed to start server', err);
     process.exit(1);
   }
 }
@@ -72,8 +78,7 @@ async function startServer(): Promise<void> {
 startServer();
 
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   await mongoose.connection.close();
-  httpServer.close();
-  process.exit(0);
+  httpServer.close(() => process.exit(0));
 });

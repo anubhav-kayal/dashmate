@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiFailure, createFailure, ErrorCode } from '../types/api';
 import { AppError, ValidationError } from '../utils/errors';
+import { logger } from '../utils/logger';
 import { ZodError } from 'zod';
 import mongoose from 'mongoose';
 
@@ -13,12 +14,11 @@ export const errorHandler = (
   const requestId = req.headers['x-request-id'] as string || 
     `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-  console.error(`[${requestId}] Error:`, {
-    message: err.message,
-    stack: err.stack,
+  logger.error(`Error: ${err.message}`, err, {
+    requestId,
     path: req.path,
     method: req.method,
-    user: (req as any).user?._id,
+    userId: (req as any).user?._id,
   });
 
   let response: ApiFailure;
